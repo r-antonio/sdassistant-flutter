@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
+import 'package:sdassistant/model/servicehost.dart';
 import 'package:sdassistant/services/sharing_service.dart';
 import 'package:sdassistant/services/mdns_service.dart';
 
@@ -16,16 +17,18 @@ class _FlutterGrpcAppState extends State<FlutterGrpcApp> {
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
     new GlobalKey<RefreshIndicatorState>();
 
+  final GlobalKey<ScaffoldState> _scaffoldStateKey = new GlobalKey<ScaffoldState>();
+
   static const platform = const MethodChannel('app.channel.shared.data');
   Map<dynamic, dynamic> sharedData = Map();
 
   String res;
-  List<String> services;
+  List<ServiceHost> services;
 
   @override
   void initState() {
     res = "";
-    services = List<String>();
+    services = List<ServiceHost>();
     super.initState();
     _initSharedHandler();
     _asyncGetServices();
@@ -52,7 +55,12 @@ class _FlutterGrpcAppState extends State<FlutterGrpcApp> {
   Future<Map> _getSharedData() async => await platform.invokeMethod('getSharedData');
 
   _asyncGetServices() async {
-    List<String> srvs = await MulticastDNSService.GetServices("_test._tcp.local");
+    List<ServiceHost> srvs = await MulticastDNSService.GetServices("_test._tcp.local");
+    if (srvs.isEmpty) {
+      _scaffoldStateKey.currentState.showSnackBar(new SnackBar(
+          content: new Text("No services found")
+      ));
+    }
     setState(() {
       services = srvs;
     });
@@ -66,6 +74,7 @@ class _FlutterGrpcAppState extends State<FlutterGrpcApp> {
         primarySwatch: Colors.blue,
       ),
       home: Scaffold(
+        key: _scaffoldStateKey,
         appBar: AppBar(
           title: Text("SD + GRPC"),
         ),
@@ -84,7 +93,8 @@ class _FlutterGrpcAppState extends State<FlutterGrpcApp> {
                     itemBuilder: (BuildContext ctx, int index) {
                       return new ListTile(
                         leading: Icon(Icons.wifi_tethering),
-                        title: Text(services[index]),
+                        title: Text(services[index].name),
+                        subtitle: Text('${services[index].ip}:${services[index].port}'),
                         onTap: () async => _callGrpc(services[index]),
                         trailing: Text("$res"),
                       );
@@ -99,7 +109,7 @@ class _FlutterGrpcAppState extends State<FlutterGrpcApp> {
     );
   }
 
-  _shareLink(String service) async {
+  _shareLink(ServiceHost service) async {
     var url = sharedData["text"];
     var status = await SharingService.ShareLink(service, url);
     setState(() {
@@ -107,7 +117,7 @@ class _FlutterGrpcAppState extends State<FlutterGrpcApp> {
     });
   }
 
-  Future<void> _callGrpc(String selectedService) async {
+  Future<void> _callGrpc(ServiceHost selectedService) async {
     print(sharedData);
     if (sharedData.containsKey("text")) {
       await _shareLink(selectedService);

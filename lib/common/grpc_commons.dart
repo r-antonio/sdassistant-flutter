@@ -1,18 +1,15 @@
 import 'package:grpc/grpc.dart';
+import 'package:sdassistant/model/servicehost.dart';
 
 class GrpcClientSingleton {
   ClientChannel client;
-  String addr;
-  int port;
+
   static final GrpcClientSingleton _singleton =
   GrpcClientSingleton._internal();
 
-  factory GrpcClientSingleton(String addr) {
-    var ipPort = addr.split(":");
-    _singleton.addr = ipPort.elementAt(0);
-    _singleton.port = int.parse(ipPort.elementAt(1));
-    _singleton.client = ClientChannel(ipPort.elementAt(0),
-        port: int.parse(ipPort.elementAt(1)),
+  factory GrpcClientSingleton(ServiceHost host) {
+    _singleton.client = ClientChannel(host.ip,
+        port: host.port,
         options: ChannelOptions(
           //TODO: Change to secure with server certificates
           credentials: ChannelCredentials.insecure(),

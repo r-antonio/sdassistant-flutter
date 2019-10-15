@@ -1,12 +1,13 @@
 import 'dart:io';
+import 'package:sdassistant/model/servicehost.dart';
 import 'package:multicast_dns/multicast_dns.dart';
 
 class MulticastDNSService {
-  static Future<List<String>> GetServices(String serviceName) async {
+  static Future<List<ServiceHost>> GetServices(String serviceName) async {
     final MDnsClient client = MDnsClient();
     await client.start();
 
-    List<String> result = [];
+    List<ServiceHost> result = [];
     List<NetworkInterface> ifaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
     ifaces = ifaces.where((iface) => iface.name.startsWith("wlan")).toList();
     print(ifaces);
@@ -23,7 +24,7 @@ class MulticastDNSService {
 
         await for (IPAddressResourceRecord arec in client.lookup<IPAddressResourceRecord>(ResourceRecordQuery.addressIPv4(srv.target))) {
           print('IP found: ${arec.address.host}');
-          result.add('${arec.address.host}:${srv.port}');
+          result.add(ServiceHost(srv.target, arec.address.host, srv.port));
           break;
         }
       }

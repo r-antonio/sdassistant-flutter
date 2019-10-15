@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:grpc/grpc.dart';
 import 'package:sdassistant/common/grpc_commons.dart';
+import 'package:sdassistant/model/servicehost.dart';
 import 'package:sdassistant/model/sharing.pb.dart';
 import 'package:sdassistant/model/sharing.pbgrpc.dart';
 
@@ -38,15 +39,15 @@ class SharingService {
     return c;
   }
 
-  static Future<Status> ShareLink(String addr, String url) async {
-    var client = SharingServiceClient(GrpcClientSingleton(addr).client);
+  static Future<Status> ShareLink(ServiceHost host, String url) async {
+    var client = SharingServiceClient(GrpcClientSingleton(host).client);
     Link l = Link();
     l.setField(1, url);
     return await client.shareLink(l);
   }
 
-  static Future<Status> Upload(String addr, String path) async{
-    var client = SharingServiceClient(GrpcClientSingleton(addr).client);
+  static Future<Status> Upload(ServiceHost host, String path) async{
+    var client = SharingServiceClient(GrpcClientSingleton(host).client);
     var file = File(path);
     var stream = file.openRead();
     var chunkered = stream.map(convert);
